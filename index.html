@@ -84,6 +84,37 @@
   .btn { border: 1px solid var(--border); background: var(--chip); color: var(--fg); padding: 8px 16px; border-radius: 10px; font-size: 14px; font-weight: 600; }
   .btn.primary { background: var(--accent); color: var(--bg); border-color: var(--accent); }
   footer { text-align: center; color: var(--muted); font-size: 12.5px; margin-top: 64px; }
+
+  /* chat widget */
+  .chat-fab { position: fixed; bottom: 20px; right: 20px; z-index: 60;
+    background: var(--accent); color: var(--bg); border: none; border-radius: 999px;
+    padding: 11px 18px; font-size: 14px; font-weight: 650; cursor: pointer;
+    box-shadow: 0 4px 18px rgba(0,0,0,.18); display: inline-flex; align-items: center; gap: 8px; }
+  .chat-fab:hover { opacity: .9; }
+  .chat-panel { position: fixed; bottom: 20px; right: 20px; z-index: 61; width: min(380px, calc(100vw - 32px));
+    height: min(520px, calc(100vh - 40px)); background: var(--bg); border: 1px solid var(--border);
+    border-radius: 16px; box-shadow: 0 12px 40px rgba(0,0,0,.22); display: none; flex-direction: column; overflow: hidden; }
+  .chat-panel.open { display: flex; }
+  .chat-head { padding: 12px 14px; border-bottom: 1px solid var(--border); display: flex;
+    align-items: center; justify-content: space-between; gap: 8px; }
+  .chat-head b { font-size: 14px; }
+  .chat-head .sub { font-size: 11px; color: var(--muted); display: block; margin-top: 1px; }
+  .chat-close { background: none; border: none; color: var(--muted); font-size: 20px; cursor: pointer; line-height: 1; }
+  .chat-log { flex: 1; overflow-y: auto; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
+  .msg { font-size: 13.5px; line-height: 1.5; max-width: 88%; padding: 8px 11px; border-radius: 12px; white-space: pre-wrap; }
+  .msg.user { align-self: flex-end; background: var(--accent); color: var(--bg); }
+  .msg.bot { align-self: flex-start; background: var(--chip); border: 1px solid var(--border); }
+  .msg.sys { align-self: center; font-size: 11.5px; color: var(--muted); text-align: center; max-width: 100%; }
+  .chat-foot { border-top: 1px solid var(--border); padding: 10px; display: flex; gap: 8px; }
+  .chat-foot input { flex: 1; background: var(--chip); border: 1px solid var(--border); color: var(--fg);
+    border-radius: 9px; padding: 8px 11px; font-size: 13.5px; font-family: inherit; outline: none; }
+  .chat-foot input:focus { border-color: var(--muted); }
+  .chat-foot button { background: var(--accent); color: var(--bg); border: none; border-radius: 9px;
+    padding: 8px 14px; font-size: 13.5px; font-weight: 650; cursor: pointer; }
+  .chat-foot button:disabled { opacity: .45; cursor: default; }
+  .bar { height: 3px; background: var(--chip); border-radius: 3px; overflow: hidden; margin-top: 6px; }
+  .bar span { display: block; height: 100%; width: 0; background: var(--link); transition: width .3s ease; }
+  .chat-note { font-size: 10.5px; color: var(--muted); text-align: center; padding: 0 10px 9px; }
   .fade { opacity: 0; filter: blur(6px); transform: translateY(8px); transition: opacity .6s ease, filter .6s ease, transform .6s ease; }
   .fade.in { opacity: 1; filter: blur(0); transform: none; }
 </style>
@@ -530,5 +561,115 @@
   }, { threshold: 0.12 });
   document.querySelectorAll('.fade').forEach(el => io.observe(el));
 </script>
+
+<button class="chat-fab" id="chatFab" aria-label="Open chat">
+  <span aria-hidden="true">&#9679;</span> Ask about my work
+</button>
+
+<div class="chat-panel" id="chatPanel" role="dialog" aria-label="Chat about Sudip's work">
+  <div class="chat-head">
+    <div>
+      <b>Ask about my work</b>
+      <span class="sub" id="chatStatus">Runs entirely in your browser</span>
+      <div class="bar" id="chatBar" hidden><span></span></div>
+    </div>
+    <button class="chat-close" id="chatClose" aria-label="Close chat">&times;</button>
+  </div>
+  <div class="chat-log" id="chatLog"></div>
+  <div class="chat-foot">
+    <input id="chatInput" placeholder="What has Sudip built?" autocomplete="off" disabled />
+    <button id="chatSend" disabled>Send</button>
+  </div>
+  <div class="chat-note">Small local model, no server. It can get things wrong.</div>
+</div>
+
+<script type="module">
+const MODEL = "SmolLM2-360M-Instruct-q4f16_1-MLC"; // 207 MB
+const FACTS = `You are a concise assistant on Sudip Niroula's portfolio site. Answer ONLY from the facts below. If asked something not covered, say you do not know and suggest emailing sudipniroula5@gmail.com. Keep answers under 60 words.
+
+FACTS:
+Sudip Niroula is a full-stack software engineer in Birtamod, Nepal. Open to remote work. Email sudipniroula5@gmail.com. GitHub github.com/imsudip45.
+Education: BSc Computer Science and Information Technology, Mechi Multiple Campus, Tribhuvan University, 2022 to 2026.
+Now: Full-Stack Developer at Nullion Technologies since April 2026.
+Before: Software Engineer at FutureFrame, Feb 2025 to Mar 2026, real-time data pipelines for live broadcast at sub-second latency.
+Stack: Python, TypeScript, JavaScript, Rust, SQL, FastAPI, Django REST, Next.js, React, Node.js, PostgreSQL, Docker, AWS, GCP. AI tools: Cursor, Claude Code, LangChain, Gemini API.
+Projects:
+- AlignCare Hub: multi-tenant healthcare SaaS for US home-care agencies. Live.
+- Ohio WebCheck Scheduler: booking for BCI and FBI fingerprint checks, four Ohio locations. Live.
+- Zoe's Beer: craft beer marketplace with inventory. Live.
+- Cafe 8848: cafe ordering and loyalty app, live on iOS and Android, Brentwood Pennsylvania.
+- Nullion Bookkeeping: ledgers and financial statements.
+- Rustle: Windows search launcher in Rust, fuzzy matching, Rayon parallel indexing, 150ms startup scan.
+- Labhya Compute: GPU rental marketplace, containerized SSH, relay server. Won Most Innovative Project, Ambition Hackathon 2025.
+- Fingerprint: real-time AI tutor for kids built on Gemini Live.
+- LiteRT.js Classifier: in-browser image classification on WebGPU.
+- Football Score Pro and Football Score Lite: match management and broadcast graphics.`;
+
+const fab=document.getElementById('chatFab'), panel=document.getElementById('chatPanel'),
+      log=document.getElementById('chatLog'), input=document.getElementById('chatInput'),
+      send=document.getElementById('chatSend'), status=document.getElementById('chatStatus'),
+      bar=document.getElementById('chatBar'), barFill=bar.querySelector('span');
+
+let engine=null, loading=false, history=[{role:"system",content:FACTS}];
+
+const add=(t,cls)=>{const d=document.createElement('div');d.className='msg '+cls;d.textContent=t;log.appendChild(d);log.scrollTop=log.scrollHeight;return d;};
+
+function shouldAutoLoad(){
+  if(!navigator.gpu) return false;                                  // no WebGPU
+  if(matchMedia('(max-width: 700px)').matches) return false;        // phones
+  const c=navigator.connection;
+  if(c&&(c.saveData||/2g|3g/.test(c.effectiveType||''))) return false; // metered or slow
+  return true;
+}
+
+async function boot(){
+  if(engine||loading) return;
+  if(!navigator.gpu){ status.textContent='Needs WebGPU (try Chrome or Edge)'; add('This runs a real language model in your browser using WebGPU, which this browser does not support. Try Chrome or Edge.','sys'); return; }
+  loading=true; bar.hidden=false; status.textContent='Loading model, 207 MB, cached after this';
+  try{
+    const webllm=await import('https://esm.run/@mlc-ai/web-llm');
+    engine=await webllm.CreateMLCEngine(MODEL,{initProgressCallback:(r)=>{
+      const pct=Math.round((r.progress||0)*100);
+      barFill.style.width=pct+'%';
+      status.textContent=r.text&&r.text.length<44?r.text:('Loading model '+pct+'%');
+    }});
+    bar.hidden=true; status.textContent='Ready, running locally on your GPU';
+    input.disabled=false; send.disabled=false; input.focus();
+    if(!log.querySelector('.msg.bot')) add("Hi, ask me about Sudip's projects, stack, or experience.",'bot');
+  }catch(e){
+    bar.hidden=true; status.textContent='Could not load model';
+    add('The model failed to load. You can email sudipniroula5@gmail.com instead.','sys');
+    console.error(e);
+  }
+  loading=false;
+}
+
+async function ask(){
+  const q=input.value.trim(); if(!q||!engine) return;
+  input.value=''; add(q,'user'); input.disabled=send.disabled=true;
+  history.push({role:'user',content:q});
+  const out=add('','bot'); let acc='';
+  try{
+    const stream=await engine.chat.completions.create({messages:history,stream:true,temperature:0.4,max_tokens:180});
+    for await(const c of stream){ const d=c.choices[0]?.delta?.content||''; acc+=d; out.textContent=acc; log.scrollTop=log.scrollHeight; }
+    history.push({role:'assistant',content:acc});
+    if(history.length>9) history=[history[0],...history.slice(-6)];
+  }catch(e){ out.textContent='Something went wrong. Try again.'; console.error(e); }
+  input.disabled=send.disabled=false; input.focus();
+}
+
+fab.addEventListener('click',()=>{panel.classList.add('open');fab.style.display='none';boot();});
+document.getElementById('chatClose').addEventListener('click',()=>{panel.classList.remove('open');fab.style.display='';});
+send.addEventListener('click',ask);
+input.addEventListener('keydown',e=>{if(e.key==='Enter')ask();});
+
+// auto-load in the background on capable desktop browsers only
+if(shouldAutoLoad()){
+  const start=()=>{ if(!engine&&!loading) boot(); };
+  if('requestIdleCallback' in window) requestIdleCallback(start,{timeout:3000});
+  else setTimeout(start,2500);
+}
+</script>
+
 </body>
 </html>
