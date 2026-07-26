@@ -1,0 +1,63 @@
+# Sudip Niroula
+
+> Full-stack software engineer based in Birtamod, Nepal. Builds and ships
+> production web applications end to end, mostly Python and FastAPI on the
+> backend with Next.js on the front. Open to remote work.
+
+Contact: sudipniroula5@gmail.com
+GitHub: https://github.com/imsudip45
+LinkedIn: https://linkedin.com/in/sudipniroula45
+
+## Current role
+
+Full-Stack Developer at Nullion Technologies (April 2026 to present). Previously
+Software Engineer at FutureFrame (February 2025 to March 2026), building real-time
+data pipelines for live broadcast products at sub-second latency.
+
+## Education
+
+BSc in Computer Science and Information Technology, Mechi Multiple Campus,
+Tribhuvan University, Nepal (2022 to 2026).
+
+## Technologies
+
+Python, TypeScript, JavaScript, Rust, SQL, FastAPI, Django REST Framework,
+Next.js, React, Node.js, PostgreSQL, Docker, AWS, Google Cloud, Electron,
+PySide6, Flutter, WebSockets, LangChain, Gemini API.
+
+## Projects
+
+- [AlignCare Hub](https://aligncarehub.com/): multi-tenant operations console for
+  US home-care agencies. FastAPI, Next.js, PostgreSQL.
+- [Ohio WebCheck Scheduler](https://fingerprint.nulliontech.com/): booking system
+  for Ohio BCI and FBI fingerprint background checks, live availability across
+  four locations, no account required.
+- [Zoe's Beer](https://zoesbeer.com/): craft beer marketplace with inventory
+  management.
+- [Cafe 8848](https://cafe8848pa.com/): ordering and loyalty platform for a coffee
+  shop in Brentwood, Pennsylvania, shipped as native iOS and Android apps.
+- [Rustle](https://github.com/imsudip45/rustle): Windows search launcher written
+  in Rust. Fuzzy matching via SkimMatcherV2, parallel indexing with Rayon,
+  roughly 150ms startup scan.
+- [Labhya Compute](https://github.com/imsudip45/Labya_compute): decentralized GPU
+  compute marketplace with containerized SSH access and a relay server routing
+  requests between providers and renters. Winner, Most Innovative Project,
+  Ambition Hackathon 2025.
+- [Fingerprint](https://github.com/imsudip45/Fingerprint): real-time multimodal AI
+  tutor for children built on Gemini Live, with a backend planner that decides
+  what to show, quiz, search, or teach from an uploaded worksheet.
+- [LiteRT.js Classifier](https://imsudip45.github.io/litert-image-classifier/):
+  in-browser image classification on WebGPU with a live GPU versus CPU latency
+  benchmark.
+- Football Score Pro: match management system, PySide6 desktop app with a React
+  control room and FastAPI backend, built with dependency injection and an event
+  bus. Private repository.
+- Football Score Lite: broadcast graphics control for streamed matches. PIXI.js
+  renderers usable as OBS browser sources, synchronized over WebSockets. Private
+  repository.
+
+## Writing
+
+- [Token-Efficient Extraction of Text from Screenshots](https://www.sudipniroula.com.np/notes/token-efficient-screenshot-extraction.html):
+  a survey of the gap between visual-token-compression research and exact text
+  extraction, with a small pilot benchmark.
