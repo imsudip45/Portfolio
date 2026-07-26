@@ -584,62 +584,84 @@
 </div>
 
 <script type="module">
-const MODEL = "SmolLM2-360M-Instruct-q4f16_1-MLC"; // 207 MB
-const FACTS = `You are a concise assistant on Sudip Niroula's portfolio site. Answer ONLY from the facts below. If asked something not covered, say you do not know and suggest emailing sudipniroula5@gmail.com. Keep answers under 60 words.
+const MODEL = "Qwen2.5-0.5B-Instruct-q4f16_1-MLC"; // 290 MB, official MLC build
 
-FACTS:
-Sudip Niroula is a full-stack software engineer in Birtamod, Nepal. Open to remote work. Email sudipniroula5@gmail.com. GitHub github.com/imsudip45.
-Education: BSc Computer Science and Information Technology, Mechi Multiple Campus, Tribhuvan University, 2022 to 2026.
-Now: Full-Stack Developer at Nullion Technologies since April 2026.
-Before: Software Engineer at FutureFrame, Feb 2025 to Mar 2026, real-time data pipelines for live broadcast at sub-second latency.
-Stack: Python, TypeScript, JavaScript, Rust, SQL, FastAPI, Django REST, Next.js, React, Node.js, PostgreSQL, Docker, AWS, GCP. AI tools: Cursor, Claude Code, LangChain, Gemini API.
-Projects:
-- AlignCare Hub: multi-tenant healthcare SaaS for US home-care agencies. Live.
-- Ohio WebCheck Scheduler: booking for BCI and FBI fingerprint checks, four Ohio locations. Live.
-- Zoe's Beer: craft beer marketplace with inventory. Live.
-- Cafe 8848: cafe ordering and loyalty app, live on iOS and Android, Brentwood Pennsylvania.
-- Nullion Bookkeeping: ledgers and financial statements.
-- Rustle: Windows search launcher in Rust, fuzzy matching, Rayon parallel indexing, 150ms startup scan.
-- Labhya Compute: GPU rental marketplace, containerized SSH, relay server. Won Most Innovative Project, Ambition Hackathon 2025.
-- Fingerprint: real-time AI tutor for kids built on Gemini Live.
-- LiteRT.js Classifier: in-browser image classification on WebGPU.
-- Football Score Pro and Football Score Lite: match management and broadcast graphics.`;
+// Small knowledge base. Retrieval picks only what a question needs,
+// so the model gets a short focused context instead of a wall of facts.
+const KB = [
+ {k:"who is sudip about yourself introduce background bio", t:"Sudip Niroula is a full-stack software engineer based in Birtamod, Nepal. He builds and ships production web apps end to end and is open to remote work."},
+ {k:"contact email hire reach message available", t:"You can reach Sudip at sudipniroula5@gmail.com. He is on GitHub at github.com/imsudip45 and LinkedIn at linkedin.com/in/sudipniroula45. He is open to remote roles."},
+ {k:"education degree study university college school bsc csit", t:"Sudip holds a BSc in Computer Science and Information Technology from Mechi Multiple Campus, Tribhuvan University, Nepal, studied 2022 to 2026."},
+ {k:"job work current company employer nullion role experience", t:"Sudip is currently a Full-Stack Developer at Nullion Technologies, since April 2026. Before that he was a Software Engineer at FutureFrame from February 2025 to March 2026, building real-time data pipelines for live broadcast at sub-second latency."},
+ {k:"stack skills technologies languages tools framework backend frontend", t:"Sudip works mainly in Python and TypeScript. Backend: FastAPI and Django REST. Frontend: Next.js and React. Database: PostgreSQL. Also Rust, SQL, Node.js, Docker, AWS and GCP."},
+ {k:"ai artificial intelligence machine learning ml llm tools cursor claude langchain gemini copilot", t:"For AI work Sudip uses Cursor and Claude Code day to day, and builds with LangChain and the Gemini APIs when a product itself needs to be intelligent."},
+ {k:"aligncare healthcare medical saas home care agency multi tenant", t:"AlignCare Hub is a live multi-tenant healthcare SaaS Sudip built for US home-care agencies. He built the data model, tenant isolation, auth and the reporting layer staff use daily. FastAPI, Next.js, PostgreSQL."},
+ {k:"ohio webcheck fingerprint booking scheduling fbi bci appointment", t:"Ohio WebCheck Scheduler is a live booking system Sudip built for Ohio BCI and FBI fingerprint background checks. It has live availability across four locations and needs no account, most bookings finish in under two minutes."},
+ {k:"cafe 8848 coffee shop app apps ios android mobile appstore playstore ordering loyalty rewards", t:"Cafe 8848 is an ordering and loyalty platform Sudip built for a coffee shop in Brentwood, Pennsylvania. It is live on both the App Store and Google Play, with tiered rewards and an admin dashboard."},
+ {k:"rustle rust windows search launcher desktop fast fuzzy", t:"Rustle is a Windows search launcher Sudip wrote in Rust. Alt plus Space opens it, fuzzy matching handles typos so vcode finds Visual Studio Code, and Rayon does parallel indexing with about a 150ms startup scan."},
+ {k:"labhya compute gpu marketplace rent hackathon award winner docker ssh", t:"Labhya Compute is a GPU rental marketplace Sudip built, with containerized SSH access to remote machines and a relay server routing requests between providers and renters. It won Most Innovative Project at Ambition Hackathon 2025."},
+ {k:"fingerprint ai tutor kids children gemini live education teaching", t:"Fingerprint is a real-time AI tutor for children aged 6 to 14 that Sudip built for the Google Gemini API Developer Competition. It uses Gemini Live for voice and adapts to how a child learns."},
+ {k:"zoes beer marketplace inventory craft", t:"Zoe's Beer is a live craft beer marketplace with inventory management, covering catalog, stock tracking and ordering."},
+ {k:"bookkeeping accounting ledger finance financial statements", t:"Nullion Bookkeeping is a bookkeeping platform Sudip built with chart of accounts, ledger entries and real financial statements including trial balance, profit and loss, and balance sheet."},
+ {k:"football score pro lite broadcast graphics obs match pyside electron pixi", t:"Sudip built two football apps. Football Score Pro handles match management with a PySide6 desktop app plus a React and FastAPI web control room. Football Score Lite does live broadcast graphics with PIXI.js renderers that drop into OBS."},
+ {k:"litert webgpu browser image classification on device edge inference", t:"The LiteRT.js Classifier is an in-browser image classifier Sudip built on WebGPU, with a live GPU versus CPU latency benchmark. It runs entirely client-side."},
+ {k:"this chatbot chat widget how does it work model local browser", t:"This chat widget runs a Qwen2.5 0.5B model fully inside your browser using WebGPU. There is no server and no API key, and it uses keyword retrieval to pull only the relevant facts before answering."},
+];
+
+const STOP = new Set("a an and the is are was were of to in on for with what who how does do did his her he she it that this you your i me my about tell can could would".split(" "));
+function retrieve(q, n=3){
+  const SHORT=new Set(['ai','ml','js','go','db','ui','ux']);
+  const words = q.toLowerCase().replace(/[^a-z0-9\s]/g,' ').split(/\s+/).filter(w=>(w.length>2||SHORT.has(w))&&!STOP.has(w));
+  if(!words.length) return [];
+  const scored = KB.map(e=>{
+    const kws = new Set(e.k.split(/\s+/));
+    const body = new Set(e.t.toLowerCase().replace(/[^a-z0-9\s]/g,' ').split(/\s+/));
+    let s=0;
+    for(const w of words){
+      if(kws.has(w)) { s+=3; continue; }                                  // exact keyword
+      let stem=false;
+      for(const k of kws){ if(k.length>3&&w.length>3&&(k.startsWith(w)||w.startsWith(k))){stem=true;break;} }
+      if(stem) { s+=2; continue; }                                        // plural or stem
+      if(body.has(w)) s+=1;                                               // whole word in text
+    }
+    return {e,s};
+  }).filter(x=>x.s>=3).sort((a,b)=>b.s-a.s);
+  return scored.slice(0,n);
+}
 
 const fab=document.getElementById('chatFab'), panel=document.getElementById('chatPanel'),
       log=document.getElementById('chatLog'), input=document.getElementById('chatInput'),
       send=document.getElementById('chatSend'), status=document.getElementById('chatStatus'),
       bar=document.getElementById('chatBar'), barFill=bar.querySelector('span');
-
-let engine=null, loading=false, history=[{role:"system",content:FACTS}];
+let engine=null, loading=false;
 
 const add=(t,cls)=>{const d=document.createElement('div');d.className='msg '+cls;d.textContent=t;log.appendChild(d);log.scrollTop=log.scrollHeight;return d;};
 
 function shouldAutoLoad(){
-  if(!navigator.gpu) return false;                                  // no WebGPU
-  if(matchMedia('(max-width: 700px)').matches) return false;        // phones
+  if(!navigator.gpu) return false;
+  if(matchMedia('(max-width: 700px)').matches) return false;
   const c=navigator.connection;
-  if(c&&(c.saveData||/2g|3g/.test(c.effectiveType||''))) return false; // metered or slow
+  if(c&&(c.saveData||/2g|3g/.test(c.effectiveType||''))) return false;
   return true;
 }
 
 async function boot(){
   if(engine||loading) return;
-  if(!navigator.gpu){ status.textContent='Needs WebGPU (try Chrome or Edge)'; add('This runs a real language model in your browser using WebGPU, which this browser does not support. Try Chrome or Edge.','sys'); return; }
-  loading=true; bar.hidden=false; status.textContent='Loading model, 207 MB, cached after this';
+  if(!navigator.gpu){ status.textContent='Needs WebGPU (Chrome or Edge)'; add('This runs a real language model in your browser with WebGPU, which this browser does not support. Try Chrome or Edge, or email sudipniroula5@gmail.com.','sys'); return; }
+  loading=true; bar.hidden=false; status.textContent='Loading model, 290 MB, cached after this';
   try{
     const webllm=await import('https://esm.run/@mlc-ai/web-llm');
     engine=await webllm.CreateMLCEngine(MODEL,{initProgressCallback:(r)=>{
       const pct=Math.round((r.progress||0)*100);
       barFill.style.width=pct+'%';
-      status.textContent=r.text&&r.text.length<44?r.text:('Loading model '+pct+'%');
+      status.textContent='Loading model '+pct+'%';
     }});
     bar.hidden=true; status.textContent='Ready, running locally on your GPU';
     input.disabled=false; send.disabled=false; input.focus();
-    if(!log.querySelector('.msg.bot')) add("Hi, ask me about Sudip's projects, stack, or experience.",'bot');
+    if(!log.querySelector('.msg.bot')) add("Ask me about Sudip's projects, stack, or experience.",'bot');
   }catch(e){
     bar.hidden=true; status.textContent='Could not load model';
-    add('The model failed to load. You can email sudipniroula5@gmail.com instead.','sys');
-    console.error(e);
+    add('The model failed to load. Email sudipniroula5@gmail.com instead.','sys'); console.error(e);
   }
   loading=false;
 }
@@ -647,14 +669,26 @@ async function boot(){
 async function ask(){
   const q=input.value.trim(); if(!q||!engine) return;
   input.value=''; add(q,'user'); input.disabled=send.disabled=true;
-  history.push({role:'user',content:q});
+
+  const hits=retrieve(q);
+  if(!hits.length){
+    add("I only know about Sudip's work and background. For anything else, email sudipniroula5@gmail.com.",'bot');
+    input.disabled=send.disabled=false; input.focus(); return;
+  }
+  const context=hits.map(h=>h.e.t).join(' ');
   const out=add('','bot'); let acc='';
+  const messages=[
+    {role:'system',content:'You answer questions about Sudip Niroula using only the CONTEXT given. Reply in one or two short sentences. Do not invent details. Do not mention the context.'},
+    {role:'user',content:'CONTEXT: Sudip built Rustle, a Windows search launcher in Rust.\n\nQUESTION: what is rustle'},
+    {role:'assistant',content:'Rustle is a Windows search launcher Sudip built in Rust.'},
+    {role:'user',content:'CONTEXT: '+context+'\n\nQUESTION: '+q}
+  ];
   try{
-    const stream=await engine.chat.completions.create({messages:history,stream:true,temperature:0.4,max_tokens:180});
-    for await(const c of stream){ const d=c.choices[0]?.delta?.content||''; acc+=d; out.textContent=acc; log.scrollTop=log.scrollHeight; }
-    history.push({role:'assistant',content:acc});
-    if(history.length>9) history=[history[0],...history.slice(-6)];
-  }catch(e){ out.textContent='Something went wrong. Try again.'; console.error(e); }
+    const stream=await engine.chat.completions.create({messages,stream:true,temperature:0.2,top_p:0.9,max_tokens:120});
+    for await(const c of stream){ acc+=c.choices[0]?.delta?.content||''; out.textContent=acc; log.scrollTop=log.scrollHeight; }
+    const clean=acc.trim();
+    if(clean.length<8) out.textContent=hits[0].e.t;   // fallback to the retrieved fact
+  }catch(e){ out.textContent=hits[0].e.t; console.error(e); }
   input.disabled=send.disabled=false; input.focus();
 }
 
@@ -663,11 +697,9 @@ document.getElementById('chatClose').addEventListener('click',()=>{panel.classLi
 send.addEventListener('click',ask);
 input.addEventListener('keydown',e=>{if(e.key==='Enter')ask();});
 
-// auto-load in the background on capable desktop browsers only
 if(shouldAutoLoad()){
   const start=()=>{ if(!engine&&!loading) boot(); };
-  if('requestIdleCallback' in window) requestIdleCallback(start,{timeout:3000});
-  else setTimeout(start,2500);
+  if('requestIdleCallback' in window) requestIdleCallback(start,{timeout:3000}); else setTimeout(start,2500);
 }
 </script>
 
